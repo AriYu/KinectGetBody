@@ -53,6 +53,7 @@ public:
 	{
 		bodies_.resize( message::body_count );		
 	}
+
 	std::vector< body > bodies_;
 };
 
