@@ -2,6 +2,7 @@
 #include <Kinect.h>
 #include <opencv2/opencv.hpp>
 
+#include "message.h"
 
 template<class Interface>
 inline void SafeRelease(Interface *& pInterfaceToRelease)
@@ -96,6 +97,9 @@ int main(int argc, char* argv[])
 		return -1;
 	}
 
+	// Message
+	message myMessage;
+
 	while (1){
 		// Frame
 		IColorFrame* pColorFrame = nullptr;
@@ -116,13 +120,16 @@ int main(int argc, char* argv[])
 			if (SUCCEEDED(hResult)){
 				for (int count = 0; count < BODY_COUNT; count++){
 					BOOLEAN bTracked = false;
+					myMessage.bodies_[count].isTracked = false;
 					hResult = pBody[count]->get_IsTracked(&bTracked);
 					if (SUCCEEDED(hResult) && bTracked){
+						myMessage.bodies_[count].isTracked = true;
 						Joint joint[JointType::JointType_Count];
 						hResult = pBody[count]->GetJoints(JointType::JointType_Count, joint);
 						if (SUCCEEDED(hResult)){
 							// Left Hand State
 							HandState leftHandState = HandState::HandState_Unknown;
+							myMessage.bodies_[count].left_hand_state_ = body::HandState::HandState_Unknown;
 							hResult = pBody[count]->get_HandLeftState(&leftHandState);
 							if (SUCCEEDED(hResult)){
 								ColorSpacePoint colorSpacePoint = { 0 };
@@ -133,12 +140,15 @@ int main(int argc, char* argv[])
 									if ((x >= 0) && (x < width) && (y >= 0) && (y < height)){
 										if (leftHandState == HandState::HandState_Open){
 											cv::circle(bufferMat, cv::Point(x, y), 75, cv::Scalar(0, 128, 0), 5, CV_AA);
+											myMessage.bodies_[count].left_hand_state_ = body::HandState::HandState_Open;
 										}
 										else if (leftHandState == HandState::HandState_Closed){
 											cv::circle(bufferMat, cv::Point(x, y), 75, cv::Scalar(0, 0, 128), 5, CV_AA);
+											myMessage.bodies_[count].left_hand_state_ = body::HandState::HandState_Closed;
 										}
 										else if (leftHandState == HandState::HandState_Lasso){
 											cv::circle(bufferMat, cv::Point(x, y), 75, cv::Scalar(128, 128, 0), 5, CV_AA);
+											myMessage.bodies_[count].left_hand_state_ = body::HandState::HandState_Lasso;
 										}
 									}
 								}
@@ -146,6 +156,7 @@ int main(int argc, char* argv[])
 
 							// Right Hand State
 							HandState rightHandState = HandState::HandState_Unknown;
+							myMessage.bodies_[count].right_hand_state_ = body::HandState::HandState_Unknown;
 							hResult = pBody[count]->get_HandRightState(&rightHandState);
 							if (SUCCEEDED(hResult)){
 								ColorSpacePoint colorSpacePoint = { 0 };
@@ -156,12 +167,15 @@ int main(int argc, char* argv[])
 									if ((x >= 0) && (x < width) && (y >= 0) && (y < height)){
 										if (rightHandState == HandState::HandState_Open){
 											cv::circle(bufferMat, cv::Point(x, y), 75, cv::Scalar(0, 128, 0), 5, CV_AA);
+											myMessage.bodies_[count].right_hand_state_ = body::HandState::HandState_Open;
 										}
 										else if (rightHandState == HandState::HandState_Closed){
 											cv::circle(bufferMat, cv::Point(x, y), 75, cv::Scalar(0, 0, 128), 5, CV_AA);
+											myMessage.bodies_[count].right_hand_state_ = body::HandState::HandState_Closed;
 										}
 										else if (rightHandState == HandState::HandState_Lasso){
 											cv::circle(bufferMat, cv::Point(x, y), 75, cv::Scalar(128, 128, 0), 5, CV_AA);
+											myMessage.bodies_[count].right_hand_state_ = body::HandState::HandState_Lasso;
 										}
 									}
 								}
@@ -173,6 +187,9 @@ int main(int argc, char* argv[])
 								pCoordinateMapper->MapCameraPointToColorSpace(joint[type].Position, &colorSpacePoint);
 								int x = static_cast<int>(colorSpacePoint.X);
 								int y = static_cast<int>(colorSpacePoint.Y);
+								myMessage.bodies_[count].positions_[type].x_ = colorSpacePoint.X;
+								myMessage.bodies_[count].positions_[type].y_ = colorSpacePoint.Y;
+								myMessage.bodies_[count].positions_[type].z_ = joint[count].Position.Z;
 								if ((x >= 0) && (x < width) && (y >= 0) && (y < height)){
 									cv::circle(bufferMat, cv::Point(x, y), 5, static_cast< cv::Scalar >(color[count]), -1, CV_AA);
 								}
