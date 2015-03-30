@@ -10,6 +10,10 @@
 
 #include "message.h"
 
+#include <boost/archive/text_oarchive.hpp>
+#include <boost/archive/text_iarchive.hpp>
+
+
 using namespace boost::asio;
 
 class transport
@@ -21,10 +25,17 @@ public:
 		boost::asio::ip::tcp::endpoint
 			endpoint(*resolver_.resolve({ ip_address.c_str(), port.c_str() }));
 		socket_.connect(endpoint, error_);
+		std::cout << "connected : " << ip_address.c_str() << " " << port.c_str() << std::endl;
 	}
 	size_t send(const message& newmessage)
 	{
-		size_t bytes = boost::asio::write(socket_, boost::asio::buffer(&newmessage, sizeof(newmessage)));
+		// For serialization
+		std::ostringstream archive_stream;
+		boost::archive::text_oarchive archive(archive_stream);
+		archive << newmessage;
+		outbound_data_ = archive_stream.str();
+		//size_t bytes = boost::asio::write(socket_, boost::asio::buffer(newmessage, sizeof(newmessage)));
+		size_t bytes = boost::asio::write(socket_, boost::asio::buffer(outbound_data_));
 		return bytes;
 	}
 	void close()
@@ -36,6 +47,7 @@ public:
 	boost::asio::io_service& io_service_;
 	boost::asio::ip::tcp::resolver resolver_;
 	boost::system::error_code error_;
+	std::string outbound_data_;
 };
 
 #endif

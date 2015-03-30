@@ -4,6 +4,8 @@
 #include <iostream>
 #include <vector>
 
+#include <boost/serialization/vector.hpp>
+
 class position
 {
 public:
@@ -17,6 +19,16 @@ public:
 	double x_;
 	double y_;
 	double z_;
+
+private:
+	friend class boost::serialization::access;
+	template<class Archive>
+	void serialize(Archive& ar, const unsigned int version)
+	{
+		ar & x_;
+		ar & y_;
+		ar & z_;
+	}
 };
 
 class body
@@ -32,15 +44,25 @@ public:
 		HandState_Lasso      = 4
 	};
 	body(){
-		positions_.resize(body::joint_count);
+		positions_.resize(body::joint_count + 1);
 		right_hand_state_ = body::HandState::HandState_Unknown;
 		left_hand_state_  = body::HandState::HandState_Unknown;
-		isTracked = false;
+		isTracked_ = false;
 	}
 	std::vector< position > positions_;
 	HandState right_hand_state_;
 	HandState left_hand_state_;
-	bool isTracked;
+	bool isTracked_;
+private:
+	friend class boost::serialization::access;
+	template<class Archive>
+	void serialize(Archive& ar, const unsigned int version)
+	{
+		ar & positions_;
+		ar & right_hand_state_;
+		ar & left_hand_state_;
+		ar & isTracked_;
+	}
 };
 
 class message
@@ -51,10 +73,18 @@ public:
 	enum { body_count = 6 };
 	message()
 	{
-		bodies_.resize( message::body_count );		
+		bodies_.resize( message::body_count + 1);		
 	}
 
 	std::vector< body > bodies_;
+
+private:
+	friend class boost::serialization::access;
+	template<class Archive>
+	void serialize(Archive& ar, const unsigned int version)
+	{
+		ar & bodies_;
+	}
 };
 
 #endif
