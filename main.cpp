@@ -1,8 +1,15 @@
+#include "message.h"
+#include "transport.h"
+
+
 #include <Windows.h>
 #include <Kinect.h>
 #include <opencv2/opencv.hpp>
 
-#include "message.h"
+#include <iostream>
+#include <string>
+
+using namespace boost::asio;
 
 template<class Interface>
 inline void SafeRelease(Interface *& pInterfaceToRelease)
@@ -99,6 +106,12 @@ int main(int argc, char* argv[])
 
 	// Message
 	message myMessage;
+
+	// Transport
+	boost::asio::io_service io_service;
+	std::string ip_address("192.168.0.155");
+	std::string port_number("18080");
+	transport transporter(io_service, ip_address, port_number);
 
 	while (1){
 		// Frame
