@@ -44,7 +44,34 @@ public:
 			return 0;
 		}
 		outbound_header_ = header_stream.str();
+		std::cout << "header_stream.str(): " << header_stream.str() << std::endl;
+		// ヘッダーと本体を一緒にして書き込む
+		std::vector<boost::asio::const_buffer> buffers;
+		buffers.push_back(boost::asio::buffer(outbound_header_));
+		buffers.push_back(boost::asio::buffer(outbound_data_));
+		//size_t bytes = boost::asio::write(socket_, boost::asio::buffer(newmessage, sizeof(newmessage)));
+		/*size_t bytes = boost::asio::write(socket_, boost::asio::buffer(outbound_data_));*/
+		size_t bytes = boost::asio::write(socket_, buffers);
+		return bytes;
+	}
+	size_t send(const beta_message& newmessage)
+	{
+		// まず本体をシリアル化する。しかしどのような大きさになるかわからない。
+		std::ostringstream archive_stream;
+		boost::archive::text_oarchive archive(archive_stream);
+		archive << newmessage;
+		outbound_data_ = archive_stream.str();
 
+		// ヘッダーを作る
+		std::ostringstream header_stream;
+		header_stream << std::setw(header_length)
+			<< std::hex << outbound_data_.size();
+		if (!header_stream || header_stream.str().size() != header_length){
+			std::cerr << "something error !" << std::endl;
+			return 0;
+		}
+		outbound_header_ = header_stream.str();
+		std::cout << "header_stream.str(): " << header_stream.str() << std::endl;
 		// ヘッダーと本体を一緒にして書き込む
 		std::vector<boost::asio::const_buffer> buffers;
 		buffers.push_back(boost::asio::buffer(outbound_header_));

@@ -58,7 +58,11 @@ private:
 	template<class Archive>
 	void serialize(Archive& ar, const unsigned int version)
 	{
-		ar & positions_;
+		size_t size = positions_.size();
+		for (size_t i = 0; i < size; i++)
+		{
+			ar & positions_[i];
+		}
 		ar & right_hand_state_;
 		ar & left_hand_state_;
 		ar & isTracked_;
@@ -83,7 +87,71 @@ private:
 	template<class Archive>
 	void serialize(Archive& ar, const unsigned int version)
 	{
-		ar & bodies_;
+		size_t size = bodies_.size();
+		for (size_t i = 0; i < size; i++)
+		{
+			ar & bodies_[i];
+		}
+
+	}
+};
+
+
+class beta_body
+{
+public:
+	beta_body(){}
+	//std::vector< position > positions_;
+	position positions_[25];
+	bool isTracked_;
+	int right_hand_state_;
+	int left_hand_state_;
+private:
+	friend class boost::serialization::access;
+	template<class Archive>
+	void serialize(Archive& ar, const unsigned int version)
+	{
+		ar & positions_;
+		//ar & boost::serialization::make_array(&positions_, sizeof(positions_));
+		ar & isTracked_;
+		ar & right_hand_state_;
+		ar & left_hand_state_;
+	}
+};
+class beta_message
+{
+public:
+	beta_message(){}
+	//std::vector< beta_body > bodies_;
+	beta_body bodies_[6];
+private:
+	friend class boost::serialization::access;
+	template<class Archive>
+	void serialize(Archive& ar, const unsigned int version)
+	{
+		for (int i = 0; i < 6; i++)
+		{
+			for (int j = 0; j < 25; j++)
+			{
+				/*std::cout << "p[" << i << "][" << j << "]x:" << bodies_[i].positions_[j].x_ << std::endl;
+				std::cout << "p[" << i << "][" << j << "]y:" << bodies_[i].positions_[j].y_ << std::endl;
+				std::cout << "p[" << i << "][" << j << "]z:" << bodies_[i].positions_[j].z_ << std::endl;*/
+				ar & bodies_[i].positions_[j].x_;
+				ar & bodies_[i].positions_[j].y_;
+				ar & bodies_[i].positions_[j].z_;
+				//std::cout << "a[" << i << "][" << j << "]x:" << bodies_[i].positions_[j].x_ << std::endl;
+				//std::cout << "a[" << i << "][" << j << "]y:" << bodies_[i].positions_[j].y_ << std::endl;
+				//std::cout << "a[" << i << "][" << j << "]z:" << bodies_[i].positions_[j].z_ << std::endl;
+				/*ar & bodies_[i].positions_[j].x_;
+				ar & bodies_[i].positions_[j].y_;
+				ar & bodies_[i].positions_[j].z_;*/
+			}
+			ar & bodies_[i].isTracked_;
+			ar & bodies_[i].right_hand_state_;
+			ar & bodies_[i].left_hand_state_;
+		}
+		//		ar & bodies_;
+		//ar & boost::serialization::make_array(&bodies_, sizeof(bodies_));
 	}
 };
 

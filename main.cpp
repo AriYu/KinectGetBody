@@ -9,6 +9,8 @@
 #include <iostream>
 #include <string>
 
+#include <limits>
+
 using namespace boost::asio;
 
 template<class Interface>
@@ -105,17 +107,21 @@ int main(int argc, char* argv[])
 			return -1;
 		}
 
-		// Message
-		message myMessage;
-
 		// Transport
 		boost::asio::io_service io_service;
 		std::string ip_address("192.168.0.155");
 		std::string port_number("18080");
 		transport transporter(io_service, ip_address, port_number);
 
+		beta_message myMessage;
+		/*myMessage.bodies_.resize(BODY_COUNT+1);
+		for (size_t i = 0; i < myMessage.bodies_.size(); i++)
+		{
+			myMessage.bodies_[i].positions_.resize(JointType::JointType_Count+1);
+		}*/
 		while (1){
-			
+			// Message
+			//message myMessage;
 
 			// Frame
 			IColorFrame* pColorFrame = nullptr;
@@ -133,10 +139,14 @@ int main(int argc, char* argv[])
 			if (SUCCEEDED(hResult)){
 				IBody* pBody[BODY_COUNT] = { 0 };
 				hResult = pBodyFrame->GetAndRefreshBodyData(BODY_COUNT, pBody);
+
 				if (SUCCEEDED(hResult)){
+
 					for (int count = 0; count < BODY_COUNT; count++){
 						BOOLEAN bTracked = false;
+
 						myMessage.bodies_[count].isTracked_ = false;
+
 						hResult = pBody[count]->get_IsTracked(&bTracked);
 						if (SUCCEEDED(hResult) && bTracked){
 							myMessage.bodies_[count].isTracked_ = true;
@@ -203,6 +213,27 @@ int main(int argc, char* argv[])
 									pCoordinateMapper->MapCameraPointToColorSpace(joint[type].Position, &colorSpacePoint);
 									int x = static_cast<int>(colorSpacePoint.X);
 									int y = static_cast<int>(colorSpacePoint.Y);
+									if (colorSpacePoint.X == std::numeric_limits<float>::infinity())
+									{
+										colorSpacePoint.X = 0;
+										//std::cout << "x infed " << std::endl;
+									}
+									else if (colorSpacePoint.X == (-1)*std::numeric_limits<double>::infinity())
+									{
+										colorSpacePoint.X = 0;
+										//std::cout << "x -infed " << std::endl;
+									}
+									if (colorSpacePoint.Y == std::numeric_limits<float>::infinity())
+									{
+										colorSpacePoint.Y = 0;
+										//std::cout << "y infed " << std::endl;
+									}
+									else if (colorSpacePoint.Y == (-1)*std::numeric_limits<double>::infinity())
+									{
+										colorSpacePoint.Y = 0;
+										//std::cout << "y -infed " << std::endl;
+									}
+
 									myMessage.bodies_[count].positions_[type].x_ = colorSpacePoint.X;
 									myMessage.bodies_[count].positions_[type].y_ = colorSpacePoint.Y;
 									myMessage.bodies_[count].positions_[type].z_ = joint[count].Position.Z;
@@ -219,6 +250,15 @@ int main(int argc, char* argv[])
 								//std::cout << "amount : " << amount.X << ", " << amount.Y << std::endl;
 							}
 						}
+						else // ƒgƒ‰ƒbƒN‚ÉŽ¸”s
+						{
+							for (int type = 0; type < JointType::JointType_Count; type++)
+							{
+								myMessage.bodies_[count].positions_[type].x_ = 0;
+								myMessage.bodies_[count].positions_[type].y_ = 0;
+								myMessage.bodies_[count].positions_[type].z_ = 0;
+							}
+						}
 					}
 					cv::resize(bufferMat, bodyMat, cv::Size(), 0.5, 0.5);
 				}
@@ -232,9 +272,19 @@ int main(int argc, char* argv[])
 			SafeRelease(pBodyFrame);
 
 			cv::imshow("Body", bodyMat);
+			for (size_t i = 0; i < BODY_COUNT; i++)
+			{
+				if (myMessage.bodies_[i].isTracked_ == true)
+				{
+					std::cout << "Body[" << i << "]::right_hand_state: " 
+						<< myMessage.bodies_[i].right_hand_state_ << std::endl;
+					std::cout << "Body[" << i << "]::left_hand_state:  " 
+						<< myMessage.bodies_[i].left_hand_state_ << std::endl;
+				}
+			}
 			size_t send_size = transporter.send(myMessage);
 			std::cout << "send ... " << send_size << "byte" << std::endl;
-			if (cv::waitKey(10) == VK_ESCAPE){
+			if (cv::waitKey(33) == VK_ESCAPE){
 				break;
 			}
 		}
