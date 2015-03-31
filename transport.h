@@ -29,13 +29,29 @@ public:
 	}
 	size_t send(const message& newmessage)
 	{
-		// For serialization
+		// まず本体をシリアル化する。しかしどのような大きさになるかわからない。
 		std::ostringstream archive_stream;
 		boost::archive::text_oarchive archive(archive_stream);
 		archive << newmessage;
 		outbound_data_ = archive_stream.str();
+
+		// ヘッダーを作る
+		std::ostringstream header_stream;
+		header_stream << std::setw(header_length)
+			<< std::hex << outbound_data_.size();
+		if (!header_stream || header_stream.str().size() != header_length){
+			std::cerr << "something error !" << std::endl;
+			return 0;
+		}
+		outbound_header_ = header_stream.str();
+
+		// ヘッダーと本体を一緒にして書き込む
+		std::vector<boost::asio::const_buffer> buffers;
+		buffers.push_back(boost::asio::buffer(outbound_header_));
+		buffers.push_back(boost::asio::buffer(outbound_data_));
 		//size_t bytes = boost::asio::write(socket_, boost::asio::buffer(newmessage, sizeof(newmessage)));
-		size_t bytes = boost::asio::write(socket_, boost::asio::buffer(outbound_data_));
+		/*size_t bytes = boost::asio::write(socket_, boost::asio::buffer(outbound_data_));*/
+		size_t bytes = boost::asio::write(socket_, buffers);
 		return bytes;
 	}
 	void close()
@@ -47,7 +63,19 @@ public:
 	boost::asio::io_service& io_service_;
 	boost::asio::ip::tcp::resolver resolver_;
 	boost::system::error_code error_;
+	
+	// 出力ヘッダー
+	std::string outbound_header_;
+	// 出力本体
 	std::string outbound_data_;
+
+	// ヘッダーの固定サイズ
+	enum { header_length = 8 };
+
+	// 入力ヘッダー
+	char inbound_header_[header_length];
+
+
 };
 
 #endif
